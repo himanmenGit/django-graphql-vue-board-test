@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="app">
+    <form @submit="createPost">
+        <p>
+            <label for="title">제목</label>
+            <input id="title" v-model="title" type="text" name="title">
+        </p>
+        <p>
+            <label for="content">내용</label>
+            <textarea id="content" v-model="content" type="textarea" name="content" cols="40" rows="8"></textarea>
+        </p>
+        <input type="submit" value="Submit">
+    </form>
+</div>
+<script>
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            title: '',
+            content: ''
+        },
+        methods: {
+            createPost(evt) {
+                evt.preventDefault();
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `mutation {
+                                  createPost(content: "` + this.content + `", title:"` + this.title + `", board: {{ board_detail.pk }}){
+                                    post {
+                                      id
+                                    }
+                                  }
+                                }`
+                    }
+                }).then((response) => {
+                    console.log(response);
+                    if ("errors" in response['data']) {
+                        alert(response['data']['errors'][0]['message'])
+                    } else {
+                        window.location = "/board/{{ board_detail.slug }}/detail/"+response['data']['data']['createPost']['post']['id']
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        }
+    })
+</script>
+{% endblock %}

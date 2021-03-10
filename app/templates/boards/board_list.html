@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="app">
+    <ul>
+        <li v-for="board in boards">
+            <a :href="'/board/' + board.slug">[[ board.name ]]</a>
+        </li>
+    </ul>
+</div>
+
+<script>
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            boards: null
+        },
+        methods: {
+            showLog() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `{ allBoards { name, slug } }`
+                    }
+                }).then((response) => {
+                    this.boards = response['data']['data']['allBoards'];
+                    console.log(response);
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        },
+        created() {
+            console.log("created");
+            this.showLog();
+        },
+    })
+</script>
+{% endblock %}

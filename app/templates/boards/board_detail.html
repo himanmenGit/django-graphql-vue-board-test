@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    table {
+        width: 100%;
+        border: 1px solid #444444;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        border: 1px solid #444444;;
+    }
+</style>
+<div id="app">
+    <table id="post_list">
+        <thead>
+        <tr>
+            <th>번호</th>
+            <th>제목</th>
+            <th>작성자</th>
+            <th>작성일</th>
+            <th>수정</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="post in posts">
+            <td>[[ post.id ]]</td>
+            <td><a :href="'/board/{{ board_detail.slug }}/detail/' + post.id">[[ post.title ]]</a></td>
+            <td>[[ post.author.username ]]</td>
+            <td>[[ post.createdDate ]]</td>
+            <td>
+                <button type="button" v-on:click="moveUpdate(post)">수정</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <button type="button" onclick="location.href='/board/{{ board_detail.slug }}/create'">글쓰기</button>
+</div>
+
+<script>
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            posts: null
+        },
+        methods: {
+            moveUpdate(post) {
+                if('{{ user.pk }}' == post.author.id)
+                {
+                    window.location.href = '/board/{{ board_detail.slug }}/update/' + post.id
+                }else{
+                    alert("수정 권한이 없습니다.")
+                }
+            },
+            showLog() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `{ allPosts(boardName:"{{ board_detail.name }}") { id, title, content, createdDate, author { id, username } } }`
+                    }
+                }).then((response) => {
+                    this.posts = response['data']['data']['allPosts'];
+                    console.log(response);
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        },
+        created() {
+            console.log("created");
+            this.showLog();
+        },
+    })
+</script>
+{% endblock %}

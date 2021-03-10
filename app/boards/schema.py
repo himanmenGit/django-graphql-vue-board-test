@@ -1,6 +1,8 @@
 import graphene
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from graphene_django.types import DjangoObjectType
+from graphql import GraphQLError
 
 from .board import Board
 from .post import Post
@@ -18,7 +20,7 @@ class BoardType(DjangoObjectType):
 class PostType(DjangoObjectType):
     class Meta:
         model = Post
-        fields = ('title', 'content', 'board', 'author')
+        fields = '__all__'
 
 
 class CommentType(DjangoObjectType):
@@ -64,13 +66,17 @@ class Query:
     all_posts = graphene.List(PostType, board_name=graphene.String())
 
     def resolve_all_posts(self, info, **kwargs):
-        return Post.objects.filter(board__name=kwargs.get('board_name'))
+        return Post.objects.filter(is_delete=False, board__name=kwargs.get('board_name')).order_by('-pk', '-created_date')
 
     def resolve_post_detail(self, info, **kwargs):
         id = kwargs.get('id')
+        title = kwargs.get('title')
 
         if id is not None:
-            return Board.objects.get(pk=id)
+            return Post.objects.get(pk=id)
+
+        if title is not None:
+            return Post.objects.get(title=title)
 
         return None
 
@@ -109,7 +115,7 @@ class PostCreateMutations(graphene.Mutation):
         title = graphene.String(required=True)
         content = graphene.String(required=True)
         board = graphene.ID(required=True)
-        author = graphene.ID(required=True)
+        author = graphene.ID()
 
     post = graphene.Field(PostType)
 
@@ -118,7 +124,7 @@ class PostCreateMutations(graphene.Mutation):
             title=kwargs.get('title'),
             content=kwargs.get('content'),
             board_id=kwargs.get('board'),
-            author_id=kwargs.get('author')
+            author_id=info.context.user.pk
         )
         return PostCreateMutations(post=post)
 
@@ -146,16 +152,22 @@ class PostUpdateMutations(graphene.Mutation):
 
 class PostDeleteMutations(graphene.Mutation):
     class Arguments:
-        pk = graphene.ID(required=True)
+        id = graphene.ID(required=True)
 
     post = graphene.Field(PostType)
 
     def mutate(self, info, **kwargs):
-        post = Post.objects.get(pk=kwargs.get('pk'))
-        post.is_delete = True
-        post.save()
-
-        return PostDeleteMutations(post=post)
+        user = info.context.user
+        if user.is_authenticated:
+            try:
+                post = Post.objects.get(author=user, pk=kwargs.get('id'))
+            except Post.DoesNotExist:
+                raise GraphQLError('삭제 권한이 없습니다.')
+            post.is_delete = True
+            post.save()
+            return PostDeleteMutations(post=post)
+        else:
+            raise GraphQLError('삭제 권한이 없습니다.')
 
 
 class Mutations(graphene.ObjectType):

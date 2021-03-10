@@ -1,0 +1,40 @@
+{% if user.is_authenticated %}
+<p>{{ user.username }} / <a href="{% url 'logout' %}">로그아웃</a></p>
+{% else %}
+<a href="{% url 'login' %}">로그인</a>
+{% endif %}
+
+<div id="header">
+    <span v-for="board in boards">
+        <a :href="'/board/' + board.slug">[[ board.name ]] | </a>
+    </span>
+</div>
+
+<script>
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#header',
+        data: {
+            boards: null
+        },
+        methods: {
+            showLog() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `{ allBoards { name, slug } }`
+                    }
+                }).then((response) => {
+                    this.boards = response['data']['data']['allBoards'];
+                    console.log(response);
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        },
+        created() {
+            this.showLog();
+        },
+    })
+</script>

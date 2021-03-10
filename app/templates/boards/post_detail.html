@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="app">
+    <div v-if=post>
+        <h3>[[ post.title ]] - [[ post.author.username ]]</h3>
+        <hr>
+        [[ post.content ]]
+        <hr>
+        <ul>
+            <li v-for="comment in post.comments">
+                [[ comment.content ]] / [[ comment.author.username ]] / [[ comment.createdDate ]]
+            </li>
+        </ul>
+        <button v-on:click="removePost">삭제</button>
+    </div>
+</div>
+
+<script>
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            post: ''
+        },
+        methods: {
+            removePost() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `mutation {
+                                      deletePost(id: {{ post_detail.pk }}){
+                                        post {
+                                          id
+                                        }
+                                      }
+                                    }`
+                    }
+                }).then((response) => {
+                    console.log(response);
+                    if("errors" in response['data']){
+                        alert(response['data']['errors'][0]['message'])
+                    }else {
+                        window.location = "/board/{{ post_detail.board.slug }}"
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            showLog() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `{
+                                  postDetail(title: "{{ post_detail.title }}") {
+                                    id
+                                    title
+                                    content
+                                    author {
+                                      username
+                                    }
+                                    createdDate,
+                                    comments{
+                                      content,
+                                      createdDate,
+                                      author {
+                                        username
+                                      }
+                                    }
+                                  }
+                                }`
+                    }
+                }).then((response) => {
+                    console.log(response);
+                    this.post = response['data']['data']['postDetail'];
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        },
+        created() {
+            console.log("created");
+            this.showLog();
+        },
+    })
+</script>
+{% endblock %}
