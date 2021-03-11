@@ -7,15 +7,12 @@
         <hr>
         [[ post.content ]]
         <hr>
-        <ul>
-            <li v-for="comment in post.comments">
-                [[ comment.content ]] / [[ comment.author.username ]] / [[ comment.createdDate ]]
-            </li>
-        </ul>
         <button v-on:click="removePost">삭제</button>
+        <hr>
     </div>
 </div>
 
+{% include 'boards/comment.html' with post_detail=post_detail %}
 <script>
     new Vue({
         delimiters: ['[[', ']]'],
@@ -61,14 +58,7 @@
                                     author {
                                       username
                                     }
-                                    createdDate,
-                                    comments{
-                                      content,
-                                      createdDate,
-                                      author {
-                                        username
-                                      }
-                                    }
+                                    createdDate
                                   }
                                 }`
                     }

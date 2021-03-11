@@ -66,7 +66,8 @@ class Query:
     all_posts = graphene.List(PostType, board_name=graphene.String())
 
     def resolve_all_posts(self, info, **kwargs):
-        return Post.objects.filter(is_delete=False, board__name=kwargs.get('board_name')).order_by('-pk', '-created_date')
+        return Post.objects.filter(is_delete=False, board__name=kwargs.get('board_name')).order_by('-pk',
+                                                                                                   '-created_date')
 
     def resolve_post_detail(self, info, **kwargs):
         id = kwargs.get('id')
@@ -85,7 +86,7 @@ class Query:
         id=graphene.Int(),
         content=graphene.String()
     )
-    all_comments = graphene.List(CommentType)
+    all_comments = graphene.List(CommentType, post_id=graphene.Int())
 
     def resolve_all_comments(self, info, **kwargs):
         return Comment.objects.filter(post_id=kwargs.get('post_id'))
@@ -160,7 +161,10 @@ class PostDeleteMutations(graphene.Mutation):
         user = info.context.user
         if user.is_authenticated:
             try:
-                post = Post.objects.get(author=user, pk=kwargs.get('id'))
+                if user.is_staff:
+                    post = Post.objects.get(pk=kwargs.get('id'))
+                else:
+                    post = Post.objects.get(author=user, pk=kwargs.get('id'))
             except Post.DoesNotExist:
                 raise GraphQLError('삭제 권한이 없습니다.')
             post.is_delete = True
@@ -170,8 +174,26 @@ class PostDeleteMutations(graphene.Mutation):
             raise GraphQLError('삭제 권한이 없습니다.')
 
 
+class CommentCreateMutations(graphene.Mutation):
+    class Arguments:
+        content = graphene.String(required=True)
+        post = graphene.ID(required=True)
+        author = graphene.ID(required=True)
+
+    comment = graphene.Field(CommentType)
+
+    def mutate(self, info, **kwargs):
+        comment = Comment.objects.create(
+            content=kwargs.get('content'),
+            post_id=kwargs.get('post'),
+            author_id=info.context.user.pk
+        )
+        return CommentCreateMutations(comment=comment)
+
+
 class Mutations(graphene.ObjectType):
     create_board = BoardCreateMutations.Field()
     create_post = PostCreateMutations.Field()
     update_post = PostUpdateMutations.Field()
     delete_post = PostDeleteMutations.Field()
+    create_comment = CommentCreateMutations.Field()

@@ -47,7 +47,7 @@
         },
         methods: {
             moveUpdate(post) {
-                if('{{ user.pk }}' == post.author.id)
+                if('{{ user.pk }}' == post.author.id || '{{ user.is_staff }}' === 'True')
                 {
                     window.location.href = '/board/{{ board_detail.slug }}/update/' + post.id
                 }else{

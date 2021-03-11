@@ -1,0 +1,75 @@
+<div id="comment">
+    <ul>
+        <li v-for="comment in comments">
+            [[ comment.content ]] / [[ comment.author.username ]] / [[ comment.createdDate ]]
+        </li>
+    </ul>
+
+    <input type="text" v-model="newComment" @keyup.enter="addComment">
+    <button v-on:click="addComment">댓글작성</button>
+</div>
+<script>
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#comment',
+        data: {
+            newComment: '',
+            comments: []
+        },
+        methods: {
+            showComment() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `{
+                                  allComments(postId: {{ post_detail.pk }}) {
+                                    content
+                                    createdDate
+                                    author {
+                                      username
+                                    }
+                                  }
+                                }`
+                    }
+                }).then((response) => {
+                    console.log(response);
+                    this.comments = response['data']['data']['allComments'];
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            addComment() {
+                Vue.axios({
+                    url: '/graphql/',
+                    method: 'post',
+                    data: {
+                        query: `mutation {
+                                  createComment(content: "` + this.newComment +`", post: {{ post_detail.pk }}, author: {{ user.pk }}) {
+                                    comment {
+                                      content
+                                      createdDate
+                                      author {
+                                        username
+                                      }
+                                    }
+                                  }
+                                }
+`
+                    }
+                }).then((response) => {
+                    console.log(response);
+                    console.log(this.comments)
+                    this.comments.push(response['data']['data']['createComment']['comment']);
+                    this.newComment = '';
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        },
+        created() {
+            console.log("created");
+            this.showComment();
+        },
+    })
+</script>
