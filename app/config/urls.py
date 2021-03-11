@@ -21,10 +21,12 @@ from django.views.decorators.csrf import csrf_exempt
 
 from graphene_django.views import GraphQLView
 
+from members.views import signup
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=True))),
     path('accounts/', include('django.contrib.auth.urls')),
-    # path('accounts/signup', include('django.contrib.auth.urls')),
+    path('accounts/signup', signup, name='signup'),
     path('board/', include('app.boards.urls'))
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
